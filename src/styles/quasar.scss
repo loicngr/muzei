@@ -1,0 +1,29 @@
+@import './quasar.variables.scss';
+@import '~quasar-styl';
+// @import '~quasar-addon-styl';
+
+.bg-purple-01 {
+  background-color: $purple-01 !important;
+}
+.bg-purple-light {
+  background-color: $purple-02 !important;
+}
+.bg-dark-01 {
+  background-color: $dark-01 !important;
+}
+.bg-light-01 {
+  background-color: $light-01 !important;
+}
+
+.color-purple-01 {
+  color: $purple-01 !important;
+}
+.color-purple-light {
+  color: $purple-02 !important;
+}
+.color-dark-01 {
+  color: $dark-01 !important;
+}
+.color-light-01 {
+  color: $light-01 !important;
+}
