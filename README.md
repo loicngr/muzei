@@ -1,5 +1,8 @@
 # muzei
 
+## Demo
+![https://i.imgur.com/5F8ctBB.gif](https://i.imgur.com/5F8ctBB.gif)
+
 ## Project setup
 ```
 npm install
