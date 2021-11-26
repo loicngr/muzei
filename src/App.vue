@@ -1,5 +1,5 @@
 <template>
-  <q-layout view="lHh lpR lF" v-if="isUserConnect">
+  <q-layout v-if="isUserConnect" view="lHh lpR lF">
     <q-page-container class="bg-dark-01">
       <router-view />
     </q-page-container>
@@ -20,8 +20,9 @@ import {
   CONST_LEFT_DRAWER_WIDTH,
   CONST_RIGHT_DRAWER_WIDTH,
 } from "@/consts";
-import { dialogConfirm, toast } from "@/utils";
+import { dialogConfirm, launchElectronNotification, toast } from "@/utils";
 import {
+  STORE_FIRST_LAUNCH,
   STORE_UPDATE_CHANNEL,
   STORE_UPDATE_FOLLOWS,
   STORE_UPDATE_LOADING,
@@ -60,6 +61,7 @@ import {
 } from "@/utils/types/events";
 import {
   fetchPaginationData,
+  OAUTH_ENDPOINT,
   PaginationDataTotal,
   USERS_FOLLOWS_ENDPOINT,
 } from "@/utils/api";
@@ -136,6 +138,9 @@ export default defineComponent({
     const isUserConnect = computed<boolean>(() => {
       return store.getters["userIsConnected"];
     });
+    const isFirstLaunch = computed<boolean>(() => {
+      return store.getters["firstLaunch"];
+    });
     const isAppLoading = computed<boolean>(() => {
       return store.getters["loading"];
     });
@@ -151,11 +156,12 @@ export default defineComponent({
     });
 
     return {
+      usersOnStreams,
+      isFirstLaunch,
       isUserConnect,
       isAppLoading,
-      usersOnStreams,
-      user,
       userFollows,
+      user,
     };
   },
   async created() {
@@ -240,9 +246,19 @@ export default defineComponent({
     updateUsers(users: Record<string, unknown>): void {
       this.$store.dispatch(STORE_UPDATE_USERS, users);
     },
-    async getUser(): Promise<UserData> {
-      const users = await fetchUsers();
-      return _.get(users, ["data"], [])[0];
+    updateFirstLaunch(status: boolean): void {
+      this.$store.dispatch(STORE_FIRST_LAUNCH, status);
+    },
+    async getUser(): Promise<undefined | UserData> {
+      try {
+        const users = await fetchUsers();
+        return _.get(users, ["data"], [])[0];
+      } catch (exception) {
+        console.error(exception);
+        const oauthEndpoint: string = OAUTH_ENDPOINT();
+        ipcRenderer.send(IPC_OPEN_EXTERNAL, oauthEndpoint);
+        return;
+      }
     },
     async getUserChannel(): Promise<UserChannelData> {
       return fetchUserChannel();
@@ -260,6 +276,8 @@ export default defineComponent({
     },
     async eventFetchUser(): Promise<void> {
       const userData = await this.getUser();
+      if (!userData) return;
+
       this.updateUser(userData);
     },
     async eventFetchUserChannel(): Promise<void> {
@@ -328,21 +346,86 @@ export default defineComponent({
         pagination: follows.pagination,
         total: follows.total,
       });
-      const usersOnStreams: UsersOnStreams = await this.fetchUsersDataStreams(
+      let usersOnStreams: UsersOnStreams = await this.fetchUsersDataStreams(
         follows.data
       );
+
+      const isFirstLaunch = this.isFirstLaunch;
+      if (isFirstLaunch) {
+        usersOnStreams.data.forEach((user) => {
+          user.notified = true;
+        });
+        this.updateFirstLaunch(false);
+      } else {
+        const oldUsersOnStreams = _.keyBy(this.usersOnStreams, "user_id");
+        usersOnStreams.data.forEach((user) => {
+          if (oldUsersOnStreams[user.user_id]) {
+            user.notified = oldUsersOnStreams[user.user_id].notified || false;
+          } else {
+            user.notified = false;
+          }
+        });
+      }
+
       this.updateUsers(_.keyBy(usersFollows.data, "id"));
       this.updateUsersOnStreams(usersOnStreams);
+      // if (isFirstLaunch) {
+      //   usersOnStreams = this.addTestUserFollowOnStream();
+      // }
+      this.notifyNewUserOnStreams(usersOnStreams);
     },
+    notifyNewUserOnStreams(usersOnStreams: UsersOnStreams): void {
+      let needUpdate = false;
+
+      usersOnStreams.data.forEach((userData) => {
+        if (!userData.notified) {
+          launchElectronNotification(
+            userData.user_login,
+            `${userData.user_name} - ${userData.title}`
+          );
+          userData.notified = true;
+          needUpdate = true;
+        }
+      });
+
+      if (needUpdate) {
+        this.updateUsersOnStreams(usersOnStreams);
+      }
+    },
+    // addTestUserFollowOnStream(): UsersOnStreams {
+    //   const fakeUser = {
+    //     id: "1",
+    //     user_id: "1",
+    //     user_login: "user_login",
+    //     user_name: "user_name",
+    //     game_id: "509658",
+    //     game_name: "Just Chatting",
+    //     type: "live",
+    //     title: "titre",
+    //     viewer_count: 6666,
+    //     started_at: "2021-08-24T16:50:23Z",
+    //     language: "fr",
+    //     thumbnail_url: "",
+    //     tag_ids: [],
+    //     is_mature: false,
+    //     notified: false,
+    //   } as UserStreamsData;
+    //   const usersOnStreams: UsersOnStreams = { data: this.usersOnStreams };
+    //   usersOnStreams.data.push(fakeUser);
+    //   this.updateUsersOnStreams(usersOnStreams);
+    //   return usersOnStreams;
+    // },
     async onIpcUserOauthToken(
-      evt: IpcRendererEvent,
+      evt: undefined | IpcRendererEvent,
       userOauthToken: string
-    ): Promise<void> {
+    ): Promise<boolean> {
       await this.$store.dispatch(STORE_USER_LOGIN, userOauthToken);
       if (this.isUserConnect) {
         await this.processAuthUser();
         await this.$router.push({ path: "/home" });
+        return true;
       }
+      return false;
     },
     async autoFetchFollows() {
       if (this.user) {

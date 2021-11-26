@@ -15,4 +15,5 @@ export interface State {
   channel: UserChannelData | null;
   follows: UsersFollowsData | null;
   leftDrawerOpen: boolean;
+  firstLaunch: boolean;
 }

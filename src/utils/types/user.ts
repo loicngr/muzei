@@ -41,6 +41,7 @@ export type UserStreamsData = {
   thumbnail_url: string;
   tag_ids: string[];
   is_mature: boolean;
+  notified?: boolean;
 };
 
 export const stubUserStreamsData = {
