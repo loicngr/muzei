@@ -8,6 +8,7 @@ import {
 } from "@/utils/types/user";
 import { InjectionKey } from "vue";
 import {
+  STORE_FIRST_LAUNCH,
   STORE_LEFT_DRAWER_OPEN,
   STORE_UPDATE_CHANNEL,
   STORE_UPDATE_FOLLOWS,
@@ -34,6 +35,7 @@ export default createStore<State>({
     channel: null,
     follows: null,
     leftDrawerOpen: true,
+    firstLaunch: true,
   },
   mutations: {
     [STORE_UPDATE_USER_OAUTH_TOKEN](state: State, userOauthToken: string) {
@@ -64,6 +66,9 @@ export default createStore<State>({
     },
     [STORE_LEFT_DRAWER_OPEN](state: State, status: boolean) {
       state.leftDrawerOpen = status;
+    },
+    [STORE_FIRST_LAUNCH](state: State, status: boolean) {
+      state.firstLaunch = status;
     },
   },
   actions: {
@@ -104,6 +109,9 @@ export default createStore<State>({
     [STORE_LEFT_DRAWER_OPEN](ctx, status: boolean) {
       ctx.commit(STORE_LEFT_DRAWER_OPEN, status);
     },
+    [STORE_FIRST_LAUNCH](ctx, status: boolean) {
+      ctx.commit(STORE_FIRST_LAUNCH, status);
+    },
   },
   modules: {},
   getters: {
@@ -133,6 +141,9 @@ export default createStore<State>({
     },
     usersOnStreams(state): UsersOnStreams | [] {
       return state.streams;
+    },
+    firstLaunch(state): boolean {
+      return state.firstLaunch;
     },
   },
 });

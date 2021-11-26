@@ -3,17 +3,23 @@
 import {
   app,
   BrowserWindow,
-  protocol,
   ipcMain,
+  Menu,
+  Notification,
+  protocol,
+  session,
   shell,
   Tray,
-  Menu,
-  session,
 } from "electron";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS3_DEVTOOLS } from "electron-devtools-installer";
 import path from "path";
-import { IPC_OPEN_EXTERNAL, IPC_USER_OAUTH_TOKEN } from "@/utils/event";
+import {
+  IPC_LAUNCH_NOTIFICATION,
+  IPC_OPEN_EXTERNAL,
+  IPC_USER_OAUTH_TOKEN,
+} from "@/utils/event";
+import { NotificationOpt } from "@/utils/types";
 
 declare const __static: string;
 let win: BrowserWindow;
@@ -221,10 +227,22 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(app_scheme);
 }
 
+function launchNotification(
+  e: Event | Electron.KeyboardEvent,
+  opt: NotificationOpt
+): void {
+  const notification = new Notification(opt.options);
+  notification.show();
+
+  notification.addListener("click", () => shell.openExternal(opt.onClick));
+}
+
 async function openExternal(e: Event | Electron.KeyboardEvent, url: string) {
   await shell.openExternal(url);
 }
+
 ipcMain.on(IPC_OPEN_EXTERNAL, openExternal);
+ipcMain.on(IPC_LAUNCH_NOTIFICATION, launchNotification);
 
 function parseFragment(hash: string): string | null {
   const hashMatch = function (expr: RegExp) {

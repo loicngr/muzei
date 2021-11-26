@@ -1,3 +1,5 @@
+import { NotificationConstructorOptions } from "electron";
+
 export type RequestPagination = {
   cursor: string;
 };
@@ -50,4 +52,9 @@ export const StreamChatStubValue = {
   height: 378,
   width: 200,
   forced: false,
+};
+
+export type NotificationOpt = {
+  options: NotificationConstructorOptions;
+  onClick: string;
 };

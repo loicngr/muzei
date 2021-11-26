@@ -21,3 +21,6 @@ export const STORE_USER_ON_STREAMS = "USER_ON_STREAMS";
 
 // Drawer
 export const STORE_LEFT_DRAWER_OPEN = "LEFT_DRAWER_OPEN";
+
+// First launch
+export const STORE_FIRST_LAUNCH = "FIRST_LAUNCH";

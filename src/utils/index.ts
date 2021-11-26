@@ -6,6 +6,10 @@ import {
 } from "@/utils/types/user";
 import _ from "lodash";
 import { Dialog, Notify } from "quasar";
+import { NotificationOpt } from "@/utils/types";
+import { ipcRenderer } from "electron";
+import { IPC_LAUNCH_NOTIFICATION } from "@/utils/event";
+import { stubElectronNotification } from "@/consts";
 
 export const getUserData = (userId: string): UserFollowsData | undefined => {
   const follows: UsersFollowsData | null = store.getters["userFollowsData"];
@@ -114,4 +118,14 @@ export const aspectRatio = (width: number, height: number): string => {
 
 export const buildTwitchChannelLink = (userLogin: string): string => {
   return "https://www.twitch.tv/" + userLogin;
+};
+
+export const launchElectronNotification = (
+  username: string,
+  body?: string
+): void => {
+  const notificationOpt: NotificationOpt = { ...stubElectronNotification };
+  if (body) notificationOpt.options.body = body;
+  notificationOpt.onClick += username;
+  ipcRenderer.send(IPC_LAUNCH_NOTIFICATION, { ...notificationOpt });
 };
